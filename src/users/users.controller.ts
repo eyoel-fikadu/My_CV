@@ -7,10 +7,13 @@ import {
   Query,
   Delete,
   Patch,
+  UseInterceptors,
+  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { CreateUserDto } from './dtos/create-users.dto';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dtos/update-user.dto';
+import { SerializeIntereceptor } from 'src/intereceptors/serialize.intereceptor';
 
 @Controller('auth')
 export class UsersController {
@@ -25,6 +28,7 @@ export class UsersController {
     return this.userService.update(id, user);
   }
 
+  @UseInterceptors(SerializeIntereceptor)
   @Get('/:id')
   findUser(@Param('id') id: number) {
     return this.userService.findOne(id);
