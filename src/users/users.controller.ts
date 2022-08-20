@@ -9,6 +9,7 @@ import {
   Patch,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Session,
 } from '@nestjs/common';
 import { CreateUserDto } from './dtos/create-users.dto';
 import { UsersService } from './users.service';
@@ -20,11 +21,21 @@ import {
 import { UserDto } from './dtos/user.dto';
 
 @Controller('auth')
+@Serialize(UserDto)
 export class UsersController {
   constructor(private userService: UsersService) {}
   @Post('signup')
-  createUser(@Body() user: CreateUserDto) {
-    this.userService.create(user.email, user.password);
+  async createUser(@Body() user: CreateUserDto, @Session() session: any) {
+    const data = await this.userService.signup(user.email, user.password);
+    session.userId = data.id;
+    return data;
+  }
+
+  @Post('signIn')
+  async signin(@Body() user: CreateUserDto, @Session() session: any) {
+    const data = await this.userService.sign(user.email, user.password);
+    session.userId = data.id;
+    return data;
   }
 
   @Patch('/:id')
@@ -33,7 +44,7 @@ export class UsersController {
   }
 
   // @UseInterceptors(new SerializeIntereceptor(UserDto))
-  @Serialize(UserDto)
+  // @Serialize(UserDto)
   @Get('/:id')
   findUser(@Param('id') id: number) {
     return this.userService.findOne(id);

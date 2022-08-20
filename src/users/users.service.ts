@@ -1,7 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
+import { randomBytes, scrypt as _scrypt } from 'crypto';
+import { promisify } from 'util';
+
+const scrypt = promisify(_scrypt);
 
 @Injectable()
 export class UsersService {
@@ -38,5 +47,36 @@ export class UsersService {
       return this.userRepo.remove(user);
     }
     throw new NotFoundException('User not found');
+  }
+
+  async signup(email: string, password: string) {
+    const user = await this.find(email);
+    if (user.length) {
+      throw new BadRequestException();
+    }
+
+    const salt = randomBytes(8).toString('hex');
+
+    const hash = (await scrypt(password, salt, 32)) as Buffer;
+
+    const result = salt + '.' + hash.toString('hex');
+
+    return await this.create(email, result);
+  }
+
+  async sign(email: string, password: string) {
+    const [user] = await this.find(email);
+    if (!user) {
+      throw new NotFoundException('user not found');
+    }
+
+    const [salt, storedHash] = user.password.split('.');
+
+    const hash = (await scrypt(password, salt, 32)) as Buffer;
+
+    if (hash.toString('hex') === storedHash) {
+      return user;
+    }
+    throw new ForbiddenException('wrond user name and password');
   }
 }
