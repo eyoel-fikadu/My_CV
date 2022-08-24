@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   ClassSerializerInterceptor,
   Session,
+  UseGuards,
 } from '@nestjs/common';
 import { CreateUserDto } from './dtos/create-users.dto';
 import { UsersService } from './users.service';
@@ -19,11 +20,24 @@ import {
   Serialize,
 } from 'src/intereceptors/serialize.intereceptor';
 import { UserDto } from './dtos/user.dto';
+import { CurrentUser } from './decorators/currentuser.decorator';
+import { CurrentUserIntereceptor } from './intereceptors/current-user.intereceptor';
+import { User } from './user.entity';
+import { AuthGuard } from 'src/guards/auth.guard';
 
 @Controller('auth')
 @Serialize(UserDto)
+// @UseInterceptors(CurrentUserIntereceptor)
 export class UsersController {
   constructor(private userService: UsersService) {}
+
+  @Get('/whoamI')
+  @UseGuards(AuthGuard)
+  whoami(@CurrentUser() user: User) {
+    return user;
+    // return this.userService.findOne(user.id);
+  }
+
   @Post('signup')
   async createUser(@Body() user: CreateUserDto, @Session() session: any) {
     const data = await this.userService.signup(user.email, user.password);
